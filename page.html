@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<html>
+    <body>
+
+        <h1>Guzi simulation</h1>
+
+        <canvas id="canvas" width="600" height="600"></canvas>
+
+        <script src="static/js/fabric.js"></script>
+        <script>
+            (function() {
+                var total = 6,
+                    blobs = new Array(total),
+                    canvas = this.__canvas = new fabric.Canvas('canvas', {
+                        renderOnAddRemove: false,
+                        selection: false
+                    }),
+                    maxx = canvas.width,
+                    maxy = canvas.height,
+                    ballsRadius = 50;
+
+                loadBlobs()
+
+                function loadBlobs() {
+                    for (var i = 0; i < total; i++) {
+                        var circle = new fabric.Circle({
+                            radius: ballsRadius,
+                            fill: '#aac',
+                            left: Math.random() * (maxx-2*ballsRadius),
+                            top: Math.random() * (maxy-2*ballsRadius),
+                        });
+                        circle.speed = {x: 3, y: 3}
+                        circle.mass = 1;
+                        canvas.add(circle);
+                        blobs[i] = circle;
+                    }
+
+                    animate();
+                }
+
+                function animate() {
+                    updatePositions();
+                    calculateCollisions();
+
+                    canvas.renderAll();
+                    fabric.util.requestAnimFrame(animate);
+                }
+
+                function updatePositions() {
+                    for (var i = 0; i < total; i++) {
+                        var blob = blobs[i];
+                        blob.left += blob.speed.x;
+                        blob.top += blob.speed.y;
+
+                        if (blob.left < 0) {
+                            blob.left = 0;
+                            blob.speed.x = -blob.speed.x;
+                        }
+                        if (blob.left > maxx-2*ballsRadius) {
+                            blob.left = maxx-2*ballsRadius;
+                            blob.speed.x = -blob.speed.x;
+                        }
+                        if (blob.top < 0) {
+                            blob.top = 0;
+                            blob.speed.y = -blob.speed.y;
+                        }
+                        if (blob.top > maxy-2*ballsRadius) {
+                            blob.top = maxy-2*ballsRadius;
+                            blob.speed.y = -blob.speed.y;
+                        }
+                    }
+                }
+                
+                function calculateCollisions() {
+                    for (var i = 0; i < total; i++) {
+                        for (var j = 0; j < total; j++) {
+                            if (j != i) {
+                                var blob = blobs[i],
+                                    blob2 = blobs[j],
+                                    a = blob.left - blob2.left,
+                                    b = blob.top - blob2.top,
+                                    distance = Math.sqrt((a*a) + (b*b));
+
+                                if (distance < blob.radius + blob2.radius)
+                                {
+                                    console.log("BOOM", i, j);
+                                    //balls have collided
+                                    var newVelX1 = (blob.speed.x * (blob.mass - blob2.mass) + (2 * blob2.mass * blob2.speed.x)) / (blob.mass + blob2.mass);
+                                    var newVelY1 = (blob.speed.y * (blob.mass - blob2.mass) + (2 * blob2.mass * blob2.speed.y)) / (blob.mass + blob2.mass);
+                                    var newVelX2 = (blob2.speed.x * (blob2.mass - blob.mass) + (2 * blob.mass * blob.speed.x)) / (blob.mass + blob2.mass);
+                                    var newVelY2 = (blob2.speed.y * (blob2.mass - blob.mass) + (2 * blob.mass * blob.speed.y)) / (blob.mass + blob2.mass);
+
+                                    blob.left = blob.left + newVelX1;
+                                    blob.top = blob.top + newVelY1;
+                                    blob2.left = blob2.left + newVelX2;
+                                    blob2.top = blob2.top + newVelY2;
+
+                                    blob.speed.x = newVelX1;
+                                    blob.speed.y = newVelY1;
+                                    blob2.speed.x = newVelX2;
+                                    blob2.speed.y = newVelY2;
+                                }
+                            }
+                        }
+                    }
+                }
+
+            })();
+        </script>
+
+    </body>
+</html> 
