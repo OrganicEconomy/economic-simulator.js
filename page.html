@@ -4,39 +4,55 @@
     <body>
 
         <h1>Guzi simulation</h1>
+        <button id="play">PLAY</button>
+        <button id="pause">PAUSE</button>
+        <button id="make_cheater">MAKE CHEATER</button>
 
-        <canvas id="canvas" width="600" height="600"></canvas>
+        <canvas id="canvas" height="600"></canvas>
 
-        <script src="static/js/fabric.js"></script>
+        <script src="static/js/fabric.min.js"></script>
+
         <script>
             (function() {
-                var total = 6,
-                    blobs = new Array(total),
-                    canvas = this.__canvas = new fabric.Canvas('canvas', {
+                var c = document.getElementById('canvas');
+                c.width = window.innerWidth;
+                var canvas = this.__canvas = new fabric.Canvas('canvas', {
                         renderOnAddRemove: false,
                         selection: false
-                    }),
+                    });
+
+                var total = 10,
+                    blobs = new Array(total),
                     maxx = canvas.width,
                     maxy = canvas.height,
-                    ballsRadius = 50;
+                    ballsRadius = 20,
+                    tx_index = 0,
+                    request;
 
-                loadBlobs()
+
+                loadBlobs();
+
+                document.getElementById("play").addEventListener("click", animate);
+                document.getElementById("pause").addEventListener("click", pause);
+                document.getElementById("make_cheater").addEventListener("click", make_cheater);
 
                 function loadBlobs() {
                     for (var i = 0; i < total; i++) {
-                        var circle = new fabric.Circle({
+                        var blob = new fabric.Circle({
                             radius: ballsRadius,
                             fill: '#aac',
                             left: Math.random() * (maxx-2*ballsRadius),
                             top: Math.random() * (maxy-2*ballsRadius),
                         });
-                        circle.speed = {x: 3, y: 3}
-                        circle.mass = 1;
-                        canvas.add(circle);
-                        blobs[i] = circle;
+                        blob.speed = {x: Math.random() *5, y: Math.random() *5}
+                        blob.mass = blob.radius;
+                        blob.id = i;
+                        blob.transactions = [];
+                        blob.on("mousedown", (e) => { console.log(e.target.id, e.target.transactions) });
+                        canvas.add(blob);
+                        blobs[i] = blob;
+                        canvas.renderAll();
                     }
-
-                    animate();
                 }
 
                 function animate() {
@@ -44,7 +60,23 @@
                     calculateCollisions();
 
                     canvas.renderAll();
-                    fabric.util.requestAnimFrame(animate);
+                    request = fabric.util.requestAnimFrame(animate);
+                }
+
+                function pause() {
+                    window.cancelAnimationFrame(request);
+                }
+
+                function make_cheater() {
+                    if (!canvas.getActiveObject()) {
+                        return;
+                    }
+                    let blob = canvas.getActiveObject();
+                    console.log("removed ", blob.transactions[blob.transactions.length-1]);
+                    console.log(blob.transactions);
+                    blob.transactions.pop();
+                    blob.set("fill", "orange");
+                    canvas.renderAll();
                 }
 
                 function updatePositions() {
@@ -69,9 +101,10 @@
                             blob.top = maxy-2*ballsRadius;
                             blob.speed.y = -blob.speed.y;
                         }
+                        blob.setCoords();
                     }
                 }
-                
+
                 function calculateCollisions() {
                     for (var i = 0; i < total; i++) {
                         for (var j = 0; j < total; j++) {
@@ -84,28 +117,72 @@
 
                                 if (distance < blob.radius + blob2.radius)
                                 {
-                                    console.log("BOOM", i, j);
                                     //balls have collided
                                     var newVelX1 = (blob.speed.x * (blob.mass - blob2.mass) + (2 * blob2.mass * blob2.speed.x)) / (blob.mass + blob2.mass);
                                     var newVelY1 = (blob.speed.y * (blob.mass - blob2.mass) + (2 * blob2.mass * blob2.speed.y)) / (blob.mass + blob2.mass);
                                     var newVelX2 = (blob2.speed.x * (blob2.mass - blob.mass) + (2 * blob.mass * blob.speed.x)) / (blob.mass + blob2.mass);
                                     var newVelY2 = (blob2.speed.y * (blob2.mass - blob.mass) + (2 * blob.mass * blob.speed.y)) / (blob.mass + blob2.mass);
 
-                                    blob.left = blob.left + newVelX1;
-                                    blob.top = blob.top + newVelY1;
-                                    blob2.left = blob2.left + newVelX2;
-                                    blob2.top = blob2.top + newVelY2;
+                                    blob.left += newVelX1;
+                                    blob.top += newVelY1;
+                                    blob2.left += newVelX2;
+                                    blob2.top += newVelY2;
 
                                     blob.speed.x = newVelX1;
                                     blob.speed.y = newVelY1;
                                     blob2.speed.x = newVelX2;
                                     blob2.speed.y = newVelY2;
+
+                                    // console.log(blob.transactions);
+                                    make_control(blob, blob2);
+
+                                    for (var t = 0; t < 3 && t < blob2.transactions.length; t++) {
+                                        if (!blob.transactions.includes(blob2.transactions[blob2.transactions.length-t-1])) {
+                                            blob.transactions.push(blob2.transactions[blob2.transactions.length-t-1]);
+                                        }
+                                    }
+                                    for (var t = 0; t < 3 && t < blob.transactions.length; t++) {
+                                        if (!blob2.transactions.includes(blob.transactions[blob.transactions.length-t-1])) {
+                                            blob2.transactions.push(blob.transactions[blob.transactions.length-t-1]);
+                                        }
+                                    }
+                                    blob.transactions.push(tx_index+":"+i+"=>"+j);
+                                    blob2.transactions.push(tx_index+":"+i+"=>"+j);
+                                    tx_index += 1;
                                 }
                             }
                         }
                     }
                 }
 
+                function make_control(blob1, blob2) {
+                    for(var i = 0; i < blob2.transactions.length; i++) {
+                        var tx = blob2.transactions[i].split(":")[1];
+                        if (tx.includes(blob1.id)) {
+                            if (! blob1.transactions.includes(blob2.transactions[i])) {
+                                console.log(blob1);
+                                console.log("is a cheater as he is missing");
+                                console.log(blob2.transactions[i]);
+                                blob1.set("fill", "red");
+                                canvas.renderAll();
+                                window.cancelAnimationFrame(request);
+                            }
+                        }
+                    }
+                    for(var i = 0; i < blob1.transactions; i++) {
+                        var tx = blob1.transactions[i].split(":")[1];
+                        if (tx.includes(blob2.id)) {
+                            if (! blob2.transactions.includes(blob1.transactions[i])) {
+                                console.log(blob2);
+                                console.log("is a cheater as he is missing");
+                                console.log(blob1.transactions[i]);
+                                blob2.set("fill", "red");
+                                canvas.renderAll();
+                                window.cancelAnimationFrame(request);
+                            }
+                        }
+                    }
+                }
             })();
         </script>
 
