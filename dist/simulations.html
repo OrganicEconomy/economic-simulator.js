@@ -1,0 +1,60 @@
+<script src="economic-simulator.js" type="text/javascript"></script>
+
+<button id="simulationBaseStart" type="button" class="btn btn-lg btn-outline-primary">Go</button>
+<button id="simulationBasePause" type="button" class="btn btn-lg btn-outline-primary">Pause</button>
+<div id="simulationBase"></div>
+
+<button id="simulationCompaniesStart" type="button" class="btn btn-lg btn-outline-primary">Go</button>
+<button id="simulationCompaniesPause" type="button" class="btn btn-lg btn-outline-primary">Pause</button>
+<div id="simulationCompanies"></div>
+
+<button id="simulationBanksStart" type="button" class="btn btn-lg btn-outline-primary">Go</button>
+<button id="simulationBanksPause" type="button" class="btn btn-lg btn-outline-primary">Pause</button>
+<div id="simulationBanks"></div>
+
+<script type="text/javascript">
+	let simulationHander = new economicSimulator.SimulationHandler();
+
+	simulationHander.add("simulationBase",
+		new economicSimulator.Simulation("simulationBase")
+		.addBorders()
+		.addPeople()
+		.setPeopleColor()
+		.setPeopleSpeed(5)
+		.setPeopleCapital(20)
+		.setPeopleTransactionsOn(1)
+		.init());
+
+	simulationHander.add("simulationCompanies",
+		new economicSimulator.Simulation("simulationCompanies")
+		.addBorders()
+		.addPeople()
+		.setPeopleColor("#4d8b31")
+		.setPeopleSpeed(5)
+		.setPeopleCapital(20)
+		.addCompanies(10)
+		.setCompaniesCapital(0)
+		.setCompaniesSpeed(3)
+		.setCompaniesTransactionOn(1, 0.5)
+		.setCompaniesSalariesOn(5)
+		.init());
+
+	simulationHander.add("simulationBanks",
+		new economicSimulator.Simulation("simulationBanks")
+		.addBorders()
+		.addPeople()
+		.setPeopleColor("#4d8b31")
+		.setPeopleSpeed(5)
+		.setPeopleCapital(20)
+		.addCompanies(10)
+		.setCompaniesCapital(0)
+		.setCompaniesSpeed(3)
+		.setCompaniesTransactionOn(1, 0.2)
+		.setCompaniesSalariesOn(5)
+		.addBanks(2)
+		.setBanksColor("#666666")
+		.setBanksSpeed(3)
+		.setBanksCapital(0)
+		.setBanksLoanOn(10)
+		.init());
+</script>

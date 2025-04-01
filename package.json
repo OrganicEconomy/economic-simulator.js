@@ -1,0 +1,40 @@
+{
+  "name": "economic-simulator",
+  "version": "0.1.0",
+  "description": "A bouncing balls based economic simulator",
+  "main": "index.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "mocha",
+    "build": "webpack",
+    "watch": "webpack --watch"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/OrganicEconomy/economic-simulator.js.git"
+  },
+  "keywords": [
+    "economy",
+    "simulation",
+    "organic-economy",
+    "money"
+  ],
+  "author": "suipotryot",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/OrganicEconomy/economic-simulator.js/issues"
+  },
+  "homepage": "https://github.com/OrganicEconomy/economic-simulator.js#readme",
+  "devDependencies": {
+    "chai": "^5.2.0",
+    "mocha": "^11.1.0",
+    "sinon": "^20.0.0",
+    "webpack": "^5.98.0",
+    "webpack-cli": "^6.0.1"
+  },
+  "dependencies": {
+    "matter-js": "^0.20.0"
+  }
+}
