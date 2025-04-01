@@ -144,7 +144,7 @@ class AdminService {
         var paid,
             toFire = 0;
         for (var i = 0; i < this.employees.length; i++) {
-            paid = this.company.wallet.pay(this.employees[i], salary);
+            paid = this.company.pay(this.employees[i], salary);
 			//TODO updateSizes();
             if (paid === 0) {
                 toFire += 1;
@@ -173,18 +173,50 @@ class AdminService {
     }
 }
 
-class Person {
+class Entity {
 	constructor (matterShape) {
 		this.shape = matterShape;
 		this.wallet = new Wallet(this)
+		this.shape.owner = this;
+		this.speed = 0;
 	}
 
 	updateSize(ratio) {
         Matter.Body.scale(this.shape, ratio, ratio);
 	}
 
-	income() {
+	income(amount) {
+		this.wallet.income(amount);
 	}
+
+	pay(target, amount) {
+		this.wallet.pay(target, amount);
+	}
+
+	setColor(color) {
+		this.shape.render.fillStyle = color;
+	}
+
+	setSpeed(speed) {
+		this.speed = speed;
+	}
+
+	updateSpeed() {
+		Body.setSpeed(this.shape, this.speed);
+	}
+}
+
+class Person extends Entity {
+}
+
+class Company extends Entity {
+	constructor (matterShape, humanResourcesHandler) {
+		super(matterShape)
+		this.humanResourcesHandler = humanResourcesHandler;
+	}
+}
+
+class Bank extends Entity {
 }
 
 class Simulation {
@@ -329,10 +361,11 @@ class Simulation {
         const peopleStack = Composites.stack(70, 100, COLUMNS, ROWS, 50, 50, function(x, y) {
             return Bodies.circle(x, y, SIMULATION_MIN_SIZE/2, { restitution: 1, render: { fillStyle: SIMULATION_BALLS_COLOR }});
         });
-
         Composite.add(this.world, peopleStack);
-        for (var i = 0; i < peopleStack.length; i++) {
-            this.people.push(new Person(peopleStack[i]));
+
+		this.people = [];
+        for (var i = 0; i < peopleStack.bodies.length; i++) {
+            this.people.push(new Person(peopleStack.bodies[i]));
         }
 		this.humanResourcesHandler = new HumanResourcesHandler(this.people)
 
@@ -352,7 +385,7 @@ class Simulation {
         var ratio, capital;
         for (var i = 0; i < this.people.length; i++) {
 			capital = calculatedCapital();
-            this.people[i].wallet.income(capital);
+            this.people[i].income(capital);
         }
 
         return this;
@@ -368,7 +401,7 @@ class Simulation {
         if (!color) { getColor = getRandomColor }
 
         for (var i = 0; i < this.people.length; i++) {
-            this.people[i].render.fillStyle = getColor();
+            this.people[i].setColor(getColor());
         }
 
         return this;
@@ -380,10 +413,8 @@ class Simulation {
      */
     setPeopleSpeed(speed, random=false) {
         for (var i = 0; i < this.people.length; i++) {
-            this.people[i].customSpeed = speed;
-            if (random) {
-                this.people[i].customSpeed = Common.random() * speed;
-            }
+			let r = random ? Common.random() : 1;
+			this.people[i].setSpeed(r * speed);
         }
 
         var engine = this.engine;
@@ -391,7 +422,7 @@ class Simulation {
 
         Events.on(this.engine, 'beforeUpdate', function(event) {
             for (var i = 0; i < people.length; i++) {
-                Body.setSpeed(people[i], people[i].customSpeed);
+				people[i].updateSpeed();
             }
         });
         return this;
@@ -425,7 +456,7 @@ class Simulation {
                 if (pair.bodyA.label === "Circle Body" && pair.bodyB.label === "Circle Body") {
                     var A = Common.choose([pair.bodyA, pair.bodyB]);
                     var B = A === pair.bodyA ? pair.bodyB : pair.bodyA;
-                    A.wallet.pay(B, ctocAmount);
+                    A.owner.pay(B.owner, ctocAmount);
                 }
             }
         });
@@ -444,11 +475,10 @@ class Simulation {
             return Bodies.rectangle(x, y, 15, 15, { restitution: 1, render: { fillStyle: getRandomColor() }});
         });
         Composite.add(this.world, companyStack);
-        this.companies = companyStack.bodies;
 
-        for (var i = 0; i < this.companies.length; i++) {
-            this.companies[i].adminService = new AdminService(this.companies[i], this.humanResourcesHandler);
-            this.companies[i].wallet = new Wallet(this.companies[i]);
+		this.companies = []
+        for (var i = 0; i < companyStack.bodies.length; i++) {
+			this.companies.push(new Company(companyStack.bodies[i], this.humanResourcesHandler));
         }
         return this;
     }
@@ -465,7 +495,7 @@ class Simulation {
 
         var ratio;
         for (var i = 0; i < this.companies.length; i++) {
-            this.companies[i].wallet.income(calculatedCapital());
+            this.companies[i].income(calculatedCapital());
         }
 
         return this;
@@ -486,13 +516,13 @@ class Simulation {
 
 				if (! A.isStatic && ! B.isStatic) {
 					if (A.label === "Rectangle Body" && B.label === "Circle Body") {
-						B.wallet.pay(A, ctobAmount);
+						B.owner.pay(A.owner, ctobAmount);
 					} else if (A.label === "Circle Body" && B.label === "Rectangle Body") {
-						A.wallet.pay(B, ctobAmount);
+						A.owner.pay(B.owner, ctobAmount);
 					} else if (A.label === "Rectangle Body" && B.label === "Rectangle Body") {
 						var A2 = Common.choose([A, B]);
 						var B2 = A2 === A ? B : A;
-						A2.wallet.pay(B2, btobAmount);
+						A2.owner.pay(B2.owner, btobAmount);
 					}
 				}
             }
@@ -552,10 +582,10 @@ class Simulation {
             return Bodies.polygon(x, y, 3, 15, { restitution: 1, render: { fillStyle: SIMULATION_BANKS_COLOR }});
         });
         Composite.add(this.world, bankStack);
-        this.banks = bankStack.bodies;
 
-        for (var i = 0; i < this.banks.length; i++) {
-            this.banks[i].wallet = new Wallet(this.banks[i]);
+		this.banks = [];
+        for (var i = 0; i < bankStack.bodies.length; i++) {
+			this.banks.push(new Bank(bankStack.bodies[i]))
         }
         return this;
     }
@@ -616,7 +646,7 @@ class Simulation {
         if (!color) { getColor = getRandomColor }
 
         for (var i = 0; i < this.banks.length; i++) {
-            this.banks[i].render.fillStyle = getColor();
+            this.banks[i].setColor(getColor());
         }
 
         return this;
@@ -707,4 +737,4 @@ class SimulationHandler {
     }
 }
 
-module.exports = { Person, AbstractWallet, Wallet, OrganicWallet, HumanResourcesHandler, AdminService, Simulation, SimulationHandler }
+module.exports = { Person, Company, Bank, AbstractWallet, Wallet, OrganicWallet, HumanResourcesHandler, AdminService, Simulation, SimulationHandler }

@@ -5,9 +5,6 @@ const sinon = require('sinon')
 
 const { Person, AbstractWallet, Wallet, OrganicWallet, HumanResourcesHandler, AdminService } = require('../src/index')
 
-/***********************************************************************
- *                           TESTS TOOLS
- **********************************************************************/
 
 describe('AbstractWallet', () => {
 	describe('income', () => {
