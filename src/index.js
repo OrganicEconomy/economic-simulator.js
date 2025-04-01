@@ -30,37 +30,15 @@ function getRandomColor () {
     return res;
 }
 
-class Wallet {
-	constructor(walletOwner, baseCash=0) {
+class AbstractWallet {
+	constructor(walletOwner) {
 		this.owner = walletOwner;
-		this.cash = baseCash;
+		this.cash = 0;
 	}
 
 	getCashAmount() {
 		return this.cash;
 	}
-
-	destroyMoney(amount) {
-		if (this.canAffordIt(amount)) {
-			this.cash -= amount;
-		}
-	}
-
-    pay(target, amount) {
-        if (!this.canAffordIt(amount)) {
-            return 0;
-        }
-        this.cash -= amount;
-		console.log(target)
-        target.income(amount);
-        this.updateSize(-amount);
-        return amount;
-    }
-
-    income(amount) {
-        this.cash += amount;
-        this.updateSize(amount);
-    }
 
     canAffordIt(amount) {
         return this.cash >= amount;
@@ -74,6 +52,56 @@ class Wallet {
 	updateSize(amount) {
 		let ratio = this.getSizingRatio(amount);
 		this.owner.updateSize(ratio)
+	}
+
+    income(amount) {
+        this.cash += amount;
+        this.updateSize(amount);
+    }
+}
+
+class Wallet extends AbstractWallet {
+	destroyMoney(amount) {
+		if (this.canAffordIt(amount)) {
+			this.cash -= amount;
+		}
+	}
+
+    pay(target, amount) {
+        if (! this.canAffordIt(amount)) {
+            return 0;
+        }
+        this.cash -= amount;
+        target.income(amount);
+        this.updateSize(-amount);
+        return amount;
+    }
+}
+
+class OrganicWallet extends AbstractWallet {
+	constructor(walletOwner) {
+		super(walletOwner);
+		this.total = 0;
+	}
+
+	pay(target, amount) {
+		if (! this.canAffordIt(amount)) {
+			return 0;
+		}
+		this.cash -= amount;
+		target.income(amount);
+        this.updateSize(-amount);
+		return amount;
+	}
+
+    income(amount) {
+        this.total += amount;
+    }
+
+	createDailyMoney() {
+		let amount = Math.floor(Math.cbrt(this.total)) + 1;
+		this.cash += amount;
+        this.updateSize(amount);
 	}
 }
 
@@ -679,4 +707,4 @@ class SimulationHandler {
     }
 }
 
-module.exports = { Person, Wallet, HumanResourcesHandler, AdminService, Simulation, SimulationHandler }
+module.exports = { Person, AbstractWallet, Wallet, OrganicWallet, HumanResourcesHandler, AdminService, Simulation, SimulationHandler }
